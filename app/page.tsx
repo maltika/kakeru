@@ -1,65 +1,181 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Sidebar from "@/components/Sidebar";
+import ShelfGrid from "@/components/ShelfGrid";
+import AddBookModal from "@/components/AddBookModal";
+import BookDetailModal from "@/components/BookDetailModal";
+import { Book, ReadStatus } from "@/components/BookCard";
+
+const TABS: { label: string; value: ReadStatus | "all" }[] = [
+  { label: "ทั้งหมด", value: "all" },
+  { label: "กำลังอ่าน", value: "reading" },
+  { label: "อ่านจบแล้ว", value: "completed" },
+  { label: "ยังไม่อ่าน", value: "planned" },
+  { label: "หยุดอ่าน", value: "dropped" },
+];
 
 export default function Home() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [activeTab, setActiveTab] = useState<ReadStatus | "all">("all");
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── ดึงข้อมูลจาก Google Sheets ──
+  useEffect(() => {
+    async function fetchBooks() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const res = await fetch("/api/books");
+        if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+        const data: Book[] = await res.json();
+        setBooks(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchBooks();
+  }, []);
+
+  // ── เพิ่มหนังสือ ──
+  async function handleAdd(book: Omit<Book, "id">) {
+    const res = await fetch("/api/books", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(book),
+    });
+    if (!res.ok) throw new Error("เพิ่มไม่สำเร็จ");
+    // reload
+    const updated = await fetch("/api/books").then((r) => r.json());
+    setBooks(updated);
+  }
+
+  // ── อัปเดตหนังสือ ──
+  async function handleUpdate(book: Book) {
+    const res = await fetch("/api/books", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(book),
+    });
+    if (!res.ok) throw new Error("แก้ไขไม่สำเร็จ");
+    setBooks((prev) => prev.map((b) => (b.id === book.id ? book : b)));
+    setSelectedBook(book);
+  }
+
+  // ── ลบหนังสือ ──
+  async function handleDelete(id: string) {
+    await fetch("/api/books", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    setBooks((prev) => prev.filter((b) => b.id !== id));
+    setSelectedBook(null);
+  }
+
+  // ── Filter + Search ──
+  const filtered = useMemo(() => {
+    return books
+      .filter((b) => activeTab === "all" || b.read_status === activeTab)
+      .filter((b) =>
+        search.trim() === ""
+          ? true
+          : b.title.includes(search) || (b.title_en ?? "").toLowerCase().includes(search.toLowerCase())
+      );
+  }, [books, activeTab, search]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{
+      display: "flex", minHeight: "100vh", backgroundColor: "#fff",
+      backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`,
+      backgroundSize: "70px 70px",
+    }}>
+      <Sidebar />
+
+      <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+        {error && <div style={{ padding: "12px 16px", backgroundColor: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
+
+        {/* Banner */}
+        <div style={{ borderRadius: 16, height: 300, background: "#b8d9f5", overflow: "hidden", position: "relative" }}>
+          <Image src="/banner.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Filter + Search + ปุ่มเพิ่ม */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 6, background: "#fff", border: "1.5px solid #b8d9f5", borderRadius: 30, padding: "6px 8px" }}>
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                style={{
+                  padding: "8px 14px", borderRadius: 20, cursor: "pointer",
+                  background: activeTab === tab.value ? "#7ec8f0" : "#fff",
+                  color: activeTab === tab.value ? "#fff" : "#5b9bd5",
+                  border: "none", fontSize: 13, fontWeight: 600,
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 ค้นหาชื่อเรื่อง..."
+            style={{
+              flex: 1, padding: "10px 16px", borderRadius: 20,
+              border: "1.5px solid #b8d9f5", fontSize: 14, color: "#1a5fa8", outline: "none",
+            }}
+          />
+
+          {/* ปุ่มเพิ่ม */}
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{ padding: "12px 28px", borderRadius: 50, background: "#b8d9f5", color: "#1a5fa8", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            + เพิ่มหนังสือ
+          </button>
         </div>
+
+        {/* Loading */}
+        {isLoading && (
+          <div style={{ textAlign: "center", padding: 40, color: "#93c5e8", fontSize: 15 }}>
+            กำลังโหลด...
+          </div>
+        )}
+
+        {/* Shelf */}
+        {!isLoading && (
+          <ShelfGrid
+            books={books}        // ← ส่ง books ทั้งหมด
+            filtered={filtered}  // ← ส่ง filtered แยก
+            onBookClick={(book) => setSelectedBook(book)}
+            onAddClick={() => setShowAdd(true)}
+          />
+        )}
       </main>
+
+      {/* Modals */}
+      {showAdd && <AddBookModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
+
+      {selectedBook && (
+        <BookDetailModal
+          book={selectedBook}
+          onClose={() => setSelectedBook(null)}
+          onDelete={handleDelete}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   );
 }
