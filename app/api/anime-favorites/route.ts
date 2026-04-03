@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMangaFavorites, saveMangaFavorites } from "@/src/lib/googleSheets";
+import { getAnimeFavorites, saveAnimeFavorites } from "@/src/lib/googleSheetsAnime";
 
 export async function GET() {
   try {
-    const ids = await getMangaFavorites();
+    const ids = await getAnimeFavorites();
     return NextResponse.json(ids);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { ids } = await req.json();
-    await saveMangaFavorites(ids);
+    await saveAnimeFavorites(ids);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

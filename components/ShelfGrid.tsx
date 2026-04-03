@@ -223,12 +223,12 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
   useEffect(() => {
     fetch("/api/favorites")
       .then((r) => r.json())
-      .then((ids: string[]) => { if (Array.isArray(ids)) setShelfIds(ids); })
+      .then((ids: string[]) => { if (Array.isArray(ids)) setShelfIds([...new Set(ids)]); }) // ← เพิ่ม Set
       .catch(() => {});
   }, []);
 
   async function handleSaveFavorites(ids: (string | null)[]) {
-    const cleanIds = ids.filter((id): id is string => !!id);
+    const cleanIds = [...new Set(ids.filter((id): id is string => !!id))]; // ← เพิ่ม Set
     setShelfIds(cleanIds);
     await fetch("/api/favorites", {
       method: "POST",
@@ -262,7 +262,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
               <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 10, width: "100%" }}>
                 {shelfBooks.map((book, idx) =>
                   book ? (
-                    <div key={book.id} style={{ position: "relative" }}>
+                    <div key={`${book.id}-${idx}`} style={{ position: "relative" }}>
                       <div style={{ position: "absolute", top: -8, left: -8, zIndex: 10 }}>
                         <StarBadge rank={idx + 1} size={30} />
                       </div>

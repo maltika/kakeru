@@ -329,7 +329,7 @@ export async function deleteWishlistItem(rowId: string): Promise<void> {
 
 // ── Favorites ─────────────────────────────────────────────────────────────────
 
-export async function getFavorites(): Promise<string[]> {
+export async function getMangaFavorites(): Promise<string[]> {
   const token = await getAccessToken();
   const res = await fetch(
     `${BASE}/${SHEET_ID}/values/Favorites!A2:A`,
@@ -340,8 +340,22 @@ export async function getFavorites(): Promise<string[]> {
   return rows.map((r) => r[0]).filter(Boolean);
 }
 
-export async function saveFavorites(ids: string[]): Promise<void> {
+export async function saveMangaFavorites(ids: string[]): Promise<void> {
   const token = await getAccessToken();
+
+  // 1. Clear ก่อน (ใช้ endpoint :clear ที่ถูกต้อง)
+  await fetch(
+    `${BASE}/${SHEET_ID}/values/Favorites!A2:A:clear`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  // 2. ถ้า ids ว่าง จบแค่นี้
+  if (ids.length === 0) return;
+
+  // 3. Write ค่าใหม่
   await fetch(
     `${BASE}/${SHEET_ID}/values/Favorites!A2:A?valueInputOption=RAW`,
     {

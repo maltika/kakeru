@@ -114,7 +114,7 @@ export default function Home() {
 
       {/* Banner */}
       <div style={{ borderRadius: 16, height: 300, background: "#b8d9f5", overflow: "hidden", position: "relative" }}>
-        <Image src="/banner.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
+        <Image src="/banner-manga.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
       </div>
 
       {/* Filter + Search + ปุ่มเพิ่ม */}
