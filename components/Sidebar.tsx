@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { label: "My Manga", href: "/" },
   { label: "My Anime", href: "/anime" },
-  { label: "Light Novel", href: "/novel" },
-  { label: "โปรไฟล์", href: "/profile" },
+  { label: "Profile", href: "/profile" },
 ];
 
 export default function Sidebar() {
