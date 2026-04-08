@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/manga/components/Sidebar";
 import type { Anime, WatchStatus, AnimeStatus } from "@/src/lib/googleSheetsAnime";
 
 export type { Anime, WatchStatus, AnimeStatus };

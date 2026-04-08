@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import Sidebar from "@/components/Sidebar";
-import ShelfGrid from "@/components/ShelfGrid";
-import AddBookModal from "@/components/AddBookModal";
-import BookDetailModal from "@/components/BookDetailModal";
-import { Book, ReadStatus } from "@/components/BookCard";
+import Sidebar from "@/app/manga/components/Sidebar";
+import ShelfGrid from "@/app/manga/components/ShelfGrid";
+import AddBookModal from "@/app/manga/components/AddBookModal";
+import BookDetailModal from "@/app/manga/components/BookDetailModal";
+import { Book, ReadStatus } from "@/app/manga/components/BookCard";
 
 const TABS: { label: string; value: ReadStatus | "all" }[] = [
   { label: "ทั้งหมด", value: "all" },

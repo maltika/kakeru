@@ -8,6 +8,8 @@ import { useState, useEffect } from "react";
 const navItems = [
   { label: "My Manga", href: "/", },
   { label: "My Anime", href: "/anime", },
+  // { label: "Statistics", href: "/stats", },
+  // { label: "Wishlist", href: "/wishlist" },
 ];
 
 export default function Sidebar() {

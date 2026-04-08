@@ -57,7 +57,7 @@ function ManageFavoriteModal({
     search.trim() === ""
       ? true
       : b.title.includes(search) ||
-        (b.title_en ?? "").toLowerCase().includes(search.toLowerCase())
+      (b.title_en ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   function handleAdd(book: Book) {
@@ -149,7 +149,7 @@ function ManageFavoriteModal({
                     >
                       ×
                     </button>
-                    <BookCard book={book} onClick={() => {}} />
+                    <BookCard book={book} onClick={() => { }} />
                   </div>
                 ) : null
               )}
@@ -187,7 +187,7 @@ function ManageFavoriteModal({
                     transition: "transform 0.15s",
                   }}
                 >
-                  <BookCard book={book} onClick={() => {}} />
+                  <BookCard book={book} onClick={() => { }} />
                   {picked && (
                     <div style={{
                       position: "absolute", inset: 0,
@@ -224,7 +224,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
     fetch("/api/favorites")
       .then((r) => r.json())
       .then((ids: string[]) => { if (Array.isArray(ids)) setShelfIds([...new Set(ids)]); }) // ← เพิ่ม Set
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   async function handleSaveFavorites(ids: (string | null)[]) {
@@ -248,28 +248,73 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
         {/* ── My Favorite ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px" }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#5b9bd5" }}>✦ My Favorite <span style={{ fontSize: 11, fontWeight: 500, color: "#93c5e8" }}>({shelfIds.length}/{SHELF_SLOTS})</span></span>
-            <button onClick={() => setShowManage(true)} style={{ padding: "5px 14px", borderRadius: 20, background: "#b8d9f5", color: "#1a5fa8", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>✏️ จัดการ</button>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#5b9bd5" }}>
+              ✦ My Favorite{" "}
+              <span style={{ fontSize: 11, fontWeight: 500, color: "#93c5e8" }}>
+                ({shelfIds.length}/{SHELF_SLOTS})
+              </span>
+            </span>
+            <button
+              onClick={() => setShowManage(true)}
+              style={{ padding: "5px 14px", borderRadius: 20, background: "#b8d9f5", color: "#1a5fa8", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+            >
+              ✏️ จัดการ
+            </button>
           </div>
 
-          <div style={{ background: "#e8f4fc", borderRadius: 16, padding: "16px 14px", minHeight: 180, border: "1.5px solid #d8edf8" }}>
+          <div
+            style={{
+              background: "#e8f4fc",
+              borderRadius: 16,
+              border: "1.5px solid #d8edf8",
+              padding: "16px 14px",
+              minHeight: 160,
+              overflow: "visible",  
+            }}
+          >
             {shelfIds.length === 0 ? (
-              <div style={{ height: 150, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#93c5e8" }}>
+              <div style={{ height: 130, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#93c5e8" }}>
                 <span style={{ fontSize: 32 }}>⭐</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>ยังไม่มีรายการโปรด กด จัดการ เพื่อเริ่ม</span>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 10, width: "100%" }}>
-                {shelfBooks.map((book, idx) =>
-                  book ? (
-                    <div key={`${book.id}-${idx}`} style={{ position: "relative" }}>
-                      <div style={{ position: "absolute", top: -8, left: -8, zIndex: 10 }}>
-                        <StarBadge rank={idx + 1} size={30} />
+              <div
+                style={{
+                  overflowX: "auto",
+                  overflowY: "visible",          // ← เผื่อ StarBadge โผล่ขอบบน
+                  paddingBottom: 6,
+                  paddingTop: 14,               // ← เว้นที่ StarBadge
+                  // custom scrollbar ให้ดูเรียบ
+                  paddingLeft: 10,    
+                  scrollbarWidth: "thin",
+                  scrollbarColor: "#b8d9f5 transparent",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    width: "max-content",        // ← ไม่ wrap บังคับให้ scroll
+                  }}
+                >
+                  {shelfBooks.map((book, idx) =>
+                    book ? (
+                      <div
+                        key={`${book.id}-${idx}`}
+                        style={{
+                          position: "relative",
+                          width: 130,             // ← fixed width ปกไม่ย่อ
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div style={{ position: "absolute", top: -8, left: -8, zIndex: 10 }}>
+                          <StarBadge rank={idx + 1} size={30} />
+                        </div>
+                        <BookCard book={book} onClick={() => onBookClick?.(book)} />
                       </div>
-                      <BookCard book={book} onClick={() => onBookClick?.(book)} />
-                    </div>
-                  ) : null
-                )}
+                    ) : null
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -280,7 +325,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#5b9bd5" }}>✦ ชั้นวาง</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: "#93c5e8", background: "#f8fbff", padding: "2px 10px", borderRadius: 12, border: "1px solid #e8f2fb" }}>
-               {sortedBooks.length} เรื่อง
+              {sortedBooks.length} เรื่อง
             </span>
           </div>
 
@@ -290,11 +335,11 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
               <span style={{ fontSize: 14, fontWeight: 600 }}>ยังไม่มีหนังสือในคอลเลกชัน</span>
             </div>
           ) : (
-            <div style={{ 
-              display: "grid", 
+            <div style={{
+              display: "grid",
               // Responsive: แถวละ 7 บนจอใหญ่ และลดลงตามขนาดจอ (iPad จะอยู่ที่ประมาณ 5-6)
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(120px, 100%/3), 1fr))", 
-              gap: "16px 10px" 
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(120px, 100%/3), 1fr))",
+              gap: "16px 10px"
             }}>
               {sortedBooks.map((book) => (
                 <BookCard key={book.id} book={book} onClick={() => onBookClick?.(book)} />
