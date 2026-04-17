@@ -8,6 +8,7 @@ interface ShelfGridProps {
   filtered?: Book[];
   onBookClick?: (book: Book) => void;
   onAddClick?: () => void;
+  uid: string;
 }
 
 const COLS = 7;
@@ -216,23 +217,28 @@ function ManageFavoriteModal({
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridProps) {
+export default function ShelfGrid({ books, filtered, onBookClick, uid }: ShelfGridProps) {
   const [shelfIds, setShelfIds] = useState<(string | null)[]>([]);
   const [showManage, setShowManage] = useState(false);
 
   useEffect(() => {
-    fetch("/api/favorites")
+    fetch("/api/favorites", {
+      headers: { "x-uid": uid },
+    })
       .then((r) => r.json())
       .then((ids: string[]) => { if (Array.isArray(ids)) setShelfIds([...new Set(ids)]); }) // ← เพิ่ม Set
       .catch(() => { });
-  }, []);
+  }, [uid]);
 
   async function handleSaveFavorites(ids: (string | null)[]) {
-    const cleanIds = [...new Set(ids.filter((id): id is string => !!id))]; // ← เพิ่ม Set
+    const cleanIds = [...new Set(ids.filter((id): id is string => !!id))];
     setShelfIds(cleanIds);
     await fetch("/api/favorites", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-uid": uid,  // ← เพิ่มตรงนี้
+      },
       body: JSON.stringify({ ids: cleanIds }),
     });
   }
@@ -269,7 +275,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
               border: "1.5px solid #d8edf8",
               padding: "16px 14px",
               minHeight: 160,
-              overflow: "visible",  
+              overflow: "visible",
             }}
           >
             {shelfIds.length === 0 ? (
@@ -285,7 +291,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
                   paddingBottom: 6,
                   paddingTop: 14,               // ← เว้นที่ StarBadge
                   // custom scrollbar ให้ดูเรียบ
-                  paddingLeft: 10,    
+                  paddingLeft: 10,
                   scrollbarWidth: "thin",
                   scrollbarColor: "#b8d9f5 transparent",
                 }}
@@ -294,7 +300,8 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
                   style={{
                     display: "flex",
                     gap: 10,
-                    width: "max-content",        // ← ไม่ wrap บังคับให้ scroll
+                    width: "max-content",
+                    alignItems: "flex-start",     // ← ไม่ wrap บังคับให้ scroll
                   }}
                 >
                   {shelfBooks.map((book, idx) =>
@@ -305,6 +312,7 @@ export default function ShelfGrid({ books, filtered, onBookClick }: ShelfGridPro
                           position: "relative",
                           width: 130,             // ← fixed width ปกไม่ย่อ
                           flexShrink: 0,
+                          height: "fit-content",
                         }}
                       >
                         <div style={{ position: "absolute", top: -8, left: -8, zIndex: 10 }}>

@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMangaFavorites, saveMangaFavorites } from "@/src/lib/googleSheets";
+import { getMangaFavorites, saveMangaFavorites } from "@/src/lib/firebase";
 
-export async function GET() {
-  try {
-    const ids = await getMangaFavorites();
-    return NextResponse.json(ids);
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
-  }
+export async function GET(req: NextRequest) {
+  const uid = req.headers.get("x-uid");
+  if (!uid) return NextResponse.json([], { status: 401 });
+
+  const ids = await getMangaFavorites(uid);
+  return NextResponse.json(ids);
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const { ids } = await req.json();
-    await saveMangaFavorites(ids);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
-  }
+  const uid = req.headers.get("x-uid");
+  if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { ids } = await req.json();
+  await saveMangaFavorites(uid, ids);
+  return NextResponse.json({ ok: true });
 }
