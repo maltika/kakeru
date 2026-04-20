@@ -130,3 +130,53 @@ export async function getMangaFavorites(uid: string): Promise<string[]> {
 export async function saveMangaFavorites(uid: string, ids: string[]): Promise<void> {
   await favoritesDoc(uid).set({ ids });
 }
+
+// ── Wishlist ───────────────────────────────────────────────────────────────────
+
+export type WishlistPriority = "high" | "medium" | "low";
+
+export interface WishlistItem {
+  id: string;
+  title: string;
+  title_en?: string;
+  cover_url?: string;
+  type: BookType;
+  priority: WishlistPriority;
+  notes?: string;
+  added_at: string; // ISO date string
+}
+
+function wishlistCol(uid: string) {
+  return getDb().collection("users").doc(uid).collection("wishlist");
+}
+
+function docToWishlistItem(id: string, data: FirebaseFirestore.DocumentData): WishlistItem {
+  return {
+    id,
+    title: data.title ?? "",
+    title_en: data.title_en || undefined,
+    cover_url: data.cover_url || undefined,
+    type: data.type ?? "manga",
+    priority: data.priority ?? "medium",
+    notes: data.notes || undefined,
+    added_at: data.added_at ?? new Date().toISOString(),
+  };
+}
+
+export async function getWishlist(uid: string): Promise<WishlistItem[]> {
+  const snap = await wishlistCol(uid).orderBy("added_at", "desc").get();
+  return snap.docs.map((doc) => docToWishlistItem(doc.id, doc.data()));
+}
+
+export async function addWishlistItem(uid: string, item: Omit<WishlistItem, "id">): Promise<void> {
+  await wishlistCol(uid).add(item);
+}
+
+export async function updateWishlistItem(uid: string, item: WishlistItem): Promise<void> {
+  const { id, ...rest } = item;
+  await wishlistCol(uid).doc(id).set(rest);
+}
+
+export async function deleteWishlistItem(uid: string, id: string): Promise<void> {
+  await wishlistCol(uid).doc(id).delete();
+}

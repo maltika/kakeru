@@ -10,6 +10,7 @@ import { User as UserIcon, LogOut } from "lucide-react";
 
 const navItems = [
   { label: "My Manga", href: "/" },
+  { label: "Wishlist", href: "/wishlist" },
 ];
 
 function UserCard({ user, handleLogout }: { user: User | null; handleLogout: () => void }) {
