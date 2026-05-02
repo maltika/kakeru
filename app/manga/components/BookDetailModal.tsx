@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Book, SeriesStatus, ReadStatus, Format, BookType, VolumeDetail, VolumeFormat } from "./BookCard";
 
 interface Props {
@@ -9,6 +9,22 @@ interface Props {
   onClose: () => void;
   onDelete: (id: string) => void;
   onUpdate: (book: Book) => Promise<void>;
+}
+
+// ── Responsive hook ───────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640) {
+  // initialize จาก window ทันที (ถ้ามี) เพื่อป้องกัน flash/wrong layout ตอน mount
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== "undefined") return window.innerWidth < breakpoint;
+    return false;
+  });
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < breakpoint);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return isMobile;
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -188,9 +204,9 @@ function MissingVolumesEditor({ total, missing, extraNote, onChange }: {
 
 // ── Volume Details Editor ─────────────────────────────────────────────────────
 function VolumeDetailsEditor({ total, missing, details, onChange }: {
-  total?: number; 
-  missing: number[]; 
-  details: VolumeDetail[]; 
+  total?: number;
+  missing: number[];
+  details: VolumeDetail[];
   onChange: (d: VolumeDetail[]) => void;
 }) {
   const [bulkInput, setBulkInput] = useState("");
@@ -204,7 +220,6 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
     </div>
   );
 
-  // แสดงเฉพาะเล่มที่มี (ไม่รวม missing)
   const ownedVolumes = Array.from({ length: total }, (_, i) => i + 1)
     .filter((vol) => !missing.includes(vol));
 
@@ -230,29 +245,21 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
     onChange(next);
   }
 
-  // ฟังก์ชันทางลัด: พิมพ์ เช่น "1-10 physical" หรือ "5-8 ebook"
   function handleBulkApply() {
-    // regex รองรับ: "1-10 physical", "1-10 ebook", "1-10 none" (ไม่สนพิมพ์เล็กใหญ่)
     const regex = /(\d+)-(\d+)\s*(physical|ebook|none)/i;
     const match = bulkInput.match(regex);
-
     if (!match) {
       alert("รูปแบบไม่ถูกต้องครับ ตัวอย่าง: 1-10 physical");
       return;
     }
-
     const start = parseInt(match[1]);
     const end = parseInt(match[2]);
     const format = match[3].toLowerCase() as VolumeFormat;
-
     const nextDetails = [...details];
-
     for (let v = start; v <= end; v++) {
-      // ทำเฉพาะเล่มที่ "มีอยู่จริง" (ไม่อยู่ใน missing) และไม่เกินจำนวนเล่มทั้งหมด
       if (ownedVolumes.includes(v)) {
         const existingIdx = nextDetails.findIndex(d => d.volume === v);
         const updatedItem = { volume: v, format };
-        
         if (existingIdx > -1) {
           nextDetails[existingIdx] = updatedItem;
         } else {
@@ -260,15 +267,12 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
         }
       }
     }
-
     onChange(nextDetails.sort((a, b) => a.volume - b.volume));
-    setBulkInput(""); // เคลียร์ช่องพิมพ์
+    setBulkInput("");
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      
-      {/* ── ส่วน Bulk Action (พิมพ์เลือกด่วน) ── */}
       <div style={{
         padding: "14px",
         background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
@@ -285,12 +289,12 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
             value={bulkInput}
             onChange={(e) => setBulkInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleBulkApply()}
-            placeholder="พิมพ์ช่วงเล่ม เช่น 1-12 physical"
+            placeholder="เช่น 1-12 physical"
           />
-          <button 
+          <button
             onClick={handleBulkApply}
             style={{
-              padding: "0 18px",
+              padding: "0 14px",
               borderRadius: 10,
               background: "#0284c7",
               color: "#fff",
@@ -298,28 +302,26 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              transition: "all 0.2s"
+              whiteSpace: "nowrap",
             }}
           >
             ตกลง
           </button>
         </div>
         <p style={{ margin: "6px 0 0", fontSize: 10, color: "#0ea5e9", fontWeight: 600 }}>
-          รูปแบบ: [เริ่ม]-[จบ] [ประเภท] (ประเภทคือ: physical, ebook, none)
+          รูปแบบ: [เริ่ม]-[จบ] [ประเภท] (physical / ebook / none)
         </p>
       </div>
 
       <div style={{ height: "1px", background: "#e8f2fb" }} />
 
-      {/* ── ลิสต์รายการรายเล่ม (แบบใส่ Scroll) ── */}
-      <div style={{ 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: 6, 
-        maxHeight: "450px", 
-        overflowY: "auto", 
-        paddingRight: "6px",
-        // ปรับแต่ง scrollbar ให้ดูสะอาดตา (สำหรับ Chrome/Safari)
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        maxHeight: "450px",
+        overflowY: "auto",
+        paddingRight: "4px",
         scrollbarWidth: "thin",
       }}>
         {ownedVolumes.map((vol) => {
@@ -327,16 +329,15 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
           const c = volumeFormatConfig[d.format];
           return (
             <div key={vol} style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "9px 14px", borderRadius: 12,
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 12px", borderRadius: 12,
               background: "#fff",
               border: `1.5px solid ${d.format !== "none" ? c.activeBorder : "#e8f2fb"}`,
               boxShadow: d.format !== "none" ? `0 2px 8px ${c.activeBorder}33` : "0 1px 3px #b8d9f518",
               transition: "all 0.2s ease",
             }}>
-              {/* เลขเล่ม */}
               <div style={{
-                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                width: 32, height: 32, borderRadius: 9, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: d.format !== "none" ? c.activeBg : "#f0f8ff",
                 fontSize: 12, fontWeight: 800,
@@ -345,12 +346,8 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
               }}>
                 {vol}
               </div>
-
-              {/* spacer */}
               <div style={{ flex: 1 }} />
-
-              {/* format buttons */}
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 5 }}>
                 {(["physical", "ebook", "none"] as VolumeFormat[]).map((f) => {
                   const fc = volumeFormatConfig[f];
                   const active = d.format === f;
@@ -362,7 +359,7 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
                       style={{
                         display: "flex", flexDirection: "column", alignItems: "center",
                         justifyContent: "center", gap: 2,
-                        width: 58, height: 44, borderRadius: 11, cursor: "pointer",
+                        width: 52, height: 42, borderRadius: 10, cursor: "pointer",
                         border: `1.5px solid ${active ? fc.activeBorder : fc.border}`,
                         background: active ? fc.activeBg : fc.bg,
                         color: active ? fc.activeColor : fc.color,
@@ -371,8 +368,8 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
                         boxShadow: active ? `0 3px 10px ${fc.activeBorder}55` : "none",
                       }}
                     >
-                      <span style={{ fontSize: 16, lineHeight: 1 }}>{fc.icon}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.02em" }}>{fc.label}</span>
+                      <span style={{ fontSize: 15, lineHeight: 1 }}>{fc.icon}</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.02em" }}>{fc.label}</span>
                     </button>
                   );
                 })}
@@ -387,17 +384,15 @@ function VolumeDetailsEditor({ total, missing, details, onChange }: {
 
 // ── Volume Details View (read-only) ───────────────────────────────────────────
 function VolumeDetailsView({ total, details, missing }: {
-  total?: number; 
-  details: VolumeDetail[]; 
+  total?: number;
+  details: VolumeDetail[];
   missing: number[];
 }) {
   if (!total || total <= 0) return null;
 
-  // กรองเอาเฉพาะเล่มที่มี (ตัดเล่มที่ระบุว่าขาดออก)
   const ownedVols = Array.from({ length: total }, (_, i) => i + 1)
     .filter((v) => !missing.includes(v));
 
-  // นับจำนวนแต่ละประเภท
   const counts = { physical: 0, ebook: 0 };
   ownedVols.forEach((vol) => {
     const fmt = details.find((x) => x.volume === vol)?.format ?? "none";
@@ -405,21 +400,18 @@ function VolumeDetailsView({ total, details, missing }: {
     if (fmt === "ebook") counts.ebook++;
   });
 
-  // กำหนดให้แสดงผลทั้ง 2 ประเภทเสมอ (ไม่ใช้ filter ออกแม้จะเป็น 0)
   const displayFormats: VolumeFormat[] = ["physical", "ebook"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-      {/* ── Summary Table (ล็อคหัวข้อ เล่มจริง/Ebook) ── */}
       <div style={{
-        display: "grid", 
+        display: "grid",
         gridTemplateColumns: "auto 1fr auto",
-        gap: "8px 12px", 
+        gap: "8px 12px",
         alignItems: "center",
-        padding: "12px 16px", 
+        padding: "12px 16px",
         borderRadius: 12,
-        background: "#f8fbff", 
+        background: "#f8fbff",
         border: "1.5px solid #e8f2fb",
       }}>
         {displayFormats.map((fmt) => {
@@ -427,11 +419,8 @@ function VolumeDetailsView({ total, details, missing }: {
           const count = fmt === "physical" ? counts.physical : counts.ebook;
           return [
             <span key={`dot-${fmt}`} style={{
-              width: 10, 
-              height: 10, 
-              borderRadius: "50%",
-              background: c.activeBorder, 
-              display: "inline-block",
+              width: 10, height: 10, borderRadius: "50%",
+              background: c.activeBorder, display: "inline-block",
             }} />,
             <span key={`label-${fmt}`} style={{ fontSize: 13, color: "#5b9bd5", fontWeight: 600 }}>
               {c.label}
@@ -443,46 +432,40 @@ function VolumeDetailsView({ total, details, missing }: {
         })}
       </div>
 
-      {/* ── Card Grid (แสดงผล 2-5 เล่มต่อแถว) ── */}
-      <div style={{ 
-        display: "grid", 
-        // ใช้ auto-fill ร่วมกับ minmax เพื่อคุมจำนวน 2-5 เล่มต่อแถว
-        gridTemplateColumns: "repeat(auto-fill, minmax(calc(20% - 8px), 1fr))",
-        gap: 8 
+      {/* Responsive grid: จอเล็กแสดง 3-4 ต่อแถว, จอกลางขึ้นไป 5 ต่อแถว */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))",
+        gap: 8,
       }}>
         {ownedVols.map((vol) => {
           const fmt = details.find((x) => x.volume === vol)?.format ?? "none";
           const c = volumeFormatConfig[fmt];
           return (
             <div key={vol} style={{
-              width: "100%", 
-              height: 80,
-              borderRadius: 12, 
+              height: 72,
+              borderRadius: 12,
               overflow: "hidden",
               border: `1.5px solid ${fmt !== "none" ? c.activeBorder : "#e0eef8"}`,
               background: fmt !== "none" ? c.activeBg : "#f0f6fc",
               boxShadow: fmt !== "none" ? `0 2px 8px ${c.activeBorder}33` : "none",
-              display: "flex", 
-              flexDirection: "column", 
+              display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               transition: "transform 0.2s ease",
             }}>
-              {/* แถบสีด้านบน */}
               <div style={{
-                width: "100%", 
-                height: 4,
+                width: "100%", height: 4,
                 background: fmt !== "none" ? c.activeBorder : "#d0e8f5",
               }} />
-              
-              <div style={{ padding: "8px 4px 10px", textAlign: "center" }}>
-                <div style={{ 
-                  fontSize: 11, 
-                  fontWeight: 800, 
-                  color: fmt !== "none" ? c.activeColor : "#5b9bd5" 
+              <div style={{ padding: "6px 4px 8px", textAlign: "center" }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 800,
+                  color: fmt !== "none" ? c.activeColor : "#5b9bd5"
                 }}>
                   เล่ม {vol}
                 </div>
-                <div style={{ fontSize: 16, marginTop: 4 }}>
+                <div style={{ fontSize: 15, marginTop: 3 }}>
                   {fmt === "physical" ? "📚" : fmt === "ebook" ? "📱" : "—"}
                 </div>
               </div>
@@ -501,6 +484,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"info" | "volumes">("info");
+  const isMobile = useIsMobile(640);
 
   const isMissingVisible =
     form.total_volumes !== undefined &&
@@ -544,79 +528,99 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
     <div
       style={{
         position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.25)",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex", alignItems: isMobile ? "flex-end" : "center",
+        justifyContent: "center",
         zIndex: 1000, backdropFilter: "blur(4px)",
       }}
       onClick={onClose}
     >
       <div
         style={{
-          backgroundColor: "#fff", borderRadius: 28, border: "2px solid #d8edf8",
-          width: "95%", maxWidth: 950, maxHeight: "90vh",
-          display: "flex", gap: 28, padding: 30, position: "relative",
+          backgroundColor: "#fff",
+          borderRadius: isMobile ? "24px 24px 0 0" : 28,
+          border: "2px solid #d8edf8",
+          width: isMobile ? "100%" : "95%",
+          maxWidth: isMobile ? "100%" : 950,
+          maxHeight: isMobile ? "95vh" : "90vh",
+          // จอเล็ก: column (รูปบน, ข้อมูลล่าง) / จอใหญ่: row เหมือนเดิม
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 0 : 28,
+          padding: isMobile ? "20px 16px 24px" : 30,
+          position: "relative",
           boxShadow: "0 32px 64px -12px rgba(124,194,240,0.25), 0 0 0 1px #e8f2fb",
           overflow: "hidden",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── รูปปก ── */}
-        <div style={{
-          flex: "0 0 35%", position: "relative", aspectRatio: "2/3",
-          borderRadius: 20, overflow: "hidden", background: "#eef6fd",
-          alignSelf: "flex-start",
-          boxShadow: "0 8px 24px rgba(124,194,240,0.2)",
-        }}>
-          {form.cover_url ? (
-            <Image src={form.cover_url} alt={form.title} fill style={{ objectFit: "cover" }} />
-          ) : (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              height: "100%", color: "#b8d9f5", fontSize: 13, flexDirection: "column", gap: 8,
-            }}>
-              <span style={{ fontSize: 32 }}>📖</span>
-              <span>ไม่มีรูปปก</span>
-            </div>
-          )}
-        </div>
-
-        {/* ── Right panel ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
-
-          {/* Tab bar */}
+        {isMobile ? (
+          // มือถือ: รูปเล็กๆ แนวนอน ไม่กินพื้นที่มาก
           <div style={{
-            display: "flex", gap: 0, borderRadius: 14, overflow: "hidden",
-            border: "1.5px solid #d8edf8", alignSelf: "flex-start",
-            boxShadow: "0 2px 8px rgba(124,194,240,0.1)",
+            display: "flex", gap: 14, alignItems: "flex-start",
+            marginBottom: 16,
           }}>
-            {(["info", "volumes"] as const).map((tab, i) => {
-              const active = activeTab === tab;
-              const labels = { info: "📋 ข้อมูลทั่วไป", volumes: "📦 รายละเอียดรายเล่ม" };
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: "9px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                    border: "none",
-                    borderRight: i === 0 ? "1.5px solid #d8edf8" : "none",
-                    background: active
-                      ? "linear-gradient(135deg, #7ec8f0 0%, #5b9bd5 100%)"
-                      : "#f8fbff",
-                    color: active ? "#fff" : "#93c5e8",
-                    transition: "all 0.2s ease",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {labels[tab]}
-                </button>
-              );
-            })}
+            <div style={{
+              flex: "0 0 80px", height: 120,
+              position: "relative", borderRadius: 14, overflow: "hidden",
+              background: "#eef6fd",
+              boxShadow: "0 4px 12px rgba(124,194,240,0.2)",
+            }}>
+              {form.cover_url ? (
+                <Image src={form.cover_url} alt={form.title} fill style={{ objectFit: "cover" }} />
+              ) : (
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  height: "100%", color: "#b8d9f5", fontSize: 11, flexDirection: "column", gap: 4,
+                }}>
+                  <span style={{ fontSize: 24 }}>📖</span>
+                  <span>ไม่มีรูปปก</span>
+                </div>
+              )}
+            </div>
+            {/* ชื่อข้างรูปบนมือถือ */}
+            <div style={{ flex: 1, paddingTop: 4 }}>
+              {editing ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <input style={{ ...inputStyle, fontSize: 15, fontWeight: 700 }} value={form.title} onChange={(e) => set("title", e.target.value)} />
+                  <input style={inputStyle} value={form.title_en ?? ""} onChange={(e) => set("title_en", e.target.value)} placeholder="ชื่ออังกฤษ/ญี่ปุ่น" />
+                </div>
+              ) : (
+                <div>
+                  <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1a5fa8", lineHeight: 1.3 }}>{book.title}</h1>
+                  {book.title_en && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7ab0d4" }}>{book.title_en}</p>}
+                </div>
+              )}
+            </div>
           </div>
+        ) : (
+          // Desktop: รูปใหญ่ด้านซ้าย
+          <div style={{
+            flex: "0 0 30%", position: "relative", aspectRatio: "2/3",
+            borderRadius: 20, overflow: "hidden", background: "#eef6fd",
+            alignSelf: "flex-start",
+            boxShadow: "0 8px 24px rgba(124,194,240,0.2)",
+          }}>
+            {form.cover_url ? (
+              <Image src={form.cover_url} alt={form.title} fill style={{ objectFit: "cover" }} />
+            ) : (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                height: "100%", color: "#b8d9f5", fontSize: 13, flexDirection: "column", gap: 8,
+              }}>
+                <span style={{ fontSize: 32 }}>📖</span>
+                <span>ไม่มีรูปปก</span>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* ══ TAB: ข้อมูลทั่วไป ══ */}
-          {activeTab === "info" && (
+        {/* ── Right panel (หรือ bottom panel บนมือถือ) ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", minWidth: 0 }}>
+
+          {/* ชื่อ (desktop only — มือถือแสดงข้างบนแล้ว) */}
+          {!isMobile && (
             <>
-              {/* ชื่อ */}
               {editing ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <input style={{ ...inputStyle, fontSize: 18, fontWeight: 700 }} value={form.title} onChange={(e) => set("title", e.target.value)} />
@@ -628,9 +632,60 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                   {book.title_en && <p style={{ margin: "4px 0 0", fontSize: 13, color: "#7ab0d4" }}>{book.title_en}</p>}
                 </div>
               )}
+            </>
+          )}
 
+          {/* Tab bar */}
+          <div style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 0,
+            borderRadius: 14,
+            overflow: "hidden",
+            border: "1.5px solid #d8edf8",
+            alignSelf: isMobile ? "stretch" : "flex-start",
+            flexShrink: 0,
+            boxShadow: "0 2px 8px rgba(124,194,240,0.1)",
+          }}>
+            {(["info", "volumes"] as const).map((tab, i) => {
+              const active = activeTab === tab;
+              const labels = { info: "📋 ข้อมูล", volumes: "📦 รายเล่ม" };
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    flex: 1,
+                    padding: "10px 20px",
+                    fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    border: "none",
+                    borderRight: i === 0 ? "1.5px solid #d8edf8" : "none",
+                    background: active
+                      ? "linear-gradient(135deg, #7ec8f0 0%, #5b9bd5 100%)"
+                      : "#f8fbff",
+                    color: active ? "#fff" : "#93c5e8",
+                    transition: "all 0.2s ease",
+                    letterSpacing: "0.01em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {labels[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ══ TAB: ข้อมูลทั่วไป ══ */}
+          {activeTab === "info" && (
+            <>
               {/* ข้อมูลหลัก */}
-              <div style={{ ...infoBlock, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{
+                ...infoBlock,
+                display: "grid",
+                // จอเล็ก: 1 คอลัมน์ / จอใหญ่: 2 คอลัมน์
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                gap: 10,
+              }}>
                 {editing ? (
                   <>
                     <div>
@@ -664,7 +719,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                       <label style={labelStyle}>แนวเรื่อง</label>
                       <input style={inputStyle} value={form.genre ?? ""} onChange={(e) => set("genre", e.target.value)} />
                     </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
+                    <div style={{ gridColumn: isMobile ? "1" : "1 / -1" }}>
                       <label style={labelStyle}>รูปปก</label>
                       <label style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
@@ -718,8 +773,8 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                         borderRadius: 10, background: "#fff",
                         border: "1.5px solid #e8f2fb",
                       }}>
-                        <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color }}>{val ?? "—"}</p>
-                        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#93c5e8", fontWeight: 600 }}>{label}</p>
+                        <p style={{ margin: 0, fontSize: isMobile ? 20 : 26, fontWeight: 800, color }}>{val ?? "—"}</p>
+                        <p style={{ margin: "2px 0 0", fontSize: isMobile ? 9 : 11, color: "#93c5e8", fontWeight: 600 }}>{label}</p>
                       </div>
                     ))}
                   </>
@@ -765,10 +820,10 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
               )}
 
               {/* สถานะอ่าน + rating */}
-              <div style={{ ...infoBlock, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ ...infoBlock, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
                 {editing ? (
                   <>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: "1 1 140px" }}>
                       <label style={labelStyle}>สถานะการอ่าน</label>
                       <select style={selectStyle} value={form.read_status} onChange={(e) => set("read_status", e.target.value as ReadStatus)}>
                         <option value="planned">ยังไม่อ่าน</option>
@@ -777,7 +832,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                         <option value="dropped">หยุดอ่าน</option>
                       </select>
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: "1 1 100px" }}>
                       <label style={labelStyle}>คะแนน (1–10)</label>
                       <input style={inputStyle} type="number" min={1} max={10} value={form.rating ?? ""} onChange={(e) => set("rating", e.target.value ? Number(e.target.value) : undefined)} />
                     </div>
@@ -821,7 +876,6 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
           {/* ══ TAB: รายละเอียดรายเล่ม ══ */}
           {activeTab === "volumes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {/* legend */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["physical", "ebook"] as VolumeFormat[]).map((f) => {
                   const c = volumeFormatConfig[f];
@@ -856,12 +910,17 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
           )}
 
           {/* ── Actions ── */}
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: "auto", paddingTop: 4 }}>
+          <div style={{
+            display: "flex", gap: 10,
+            justifyContent: isMobile ? "stretch" : "flex-end",
+            marginTop: "auto", paddingTop: 4,
+          }}>
             {editing ? (
               <>
                 <button
                   onClick={() => { setEditing(false); setForm(book); }}
                   style={{
+                    flex: isMobile ? 1 : undefined,
                     padding: "9px 20px", borderRadius: 22, fontWeight: 700, fontSize: 13,
                     background: "#f0f8ff", color: "#5b9bd5",
                     border: "1.5px solid #d8edf8", cursor: "pointer",
@@ -873,6 +932,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                   onClick={handleSave}
                   disabled={saving}
                   style={{
+                    flex: isMobile ? 2 : undefined,
                     padding: "9px 24px", borderRadius: 22, fontWeight: 700, fontSize: 13,
                     background: saving ? "#b8d9f5" : "linear-gradient(135deg, #7ec8f0, #5b9bd5)",
                     color: "#fff", border: "none", cursor: saving ? "not-allowed" : "pointer",
@@ -888,6 +948,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                 <button
                   onClick={() => { if (confirm("ลบเรื่องนี้จริงๆ เหรอ?")) { onDelete(book.id); onClose(); } }}
                   style={{
+                    flex: isMobile ? 1 : undefined,
                     padding: "9px 20px", borderRadius: 22, fontWeight: 700, fontSize: 13,
                     background: "#fff5f5", color: "#dc2626",
                     border: "1.5px solid #fca5a5", cursor: "pointer",
@@ -898,6 +959,7 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                 <button
                   onClick={() => setEditing(true)}
                   style={{
+                    flex: isMobile ? 2 : undefined,
                     padding: "9px 24px", borderRadius: 22, fontWeight: 700, fontSize: 13,
                     background: "linear-gradient(135deg, #7ec8f0, #5b9bd5)",
                     color: "#fff", border: "none", cursor: "pointer",
@@ -915,12 +977,12 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
         <button
           onClick={onClose}
           style={{
-            position: "absolute", top: 16, right: 18,
+            position: "absolute", top: 14, right: 14,
             background: "#f0f8ff", border: "1.5px solid #d8edf8",
             borderRadius: "50%", width: 32, height: 32,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 18, cursor: "pointer", color: "#93c5e8",
-            lineHeight: 1,
+            lineHeight: 1, zIndex: 10,
           }}
         >
           ×

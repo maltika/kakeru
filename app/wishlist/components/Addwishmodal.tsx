@@ -27,9 +27,14 @@ const PRIORITY_OPTIONS: { value: WishlistPriority; label: string; color: string;
   { value: "low", label: "💤 ไม่รีบ", color: "#6b7280", bg: "#f9fafb" },
 ];
 
+const PUBLISHERS = ["Siam Inter Comics", "NED Comics", "Vibulkij", "Bongkoch", "animag", "Nation Edutainment", "อื่นๆ"];
+const STORES = ["ร้านหนังสือทั่วไป", "Kinokuniya", "B2S", "Se-ed", "Naiin", "Shopee", "Lazada", "อื่นๆ"];
+
 export default function AddWishModal({ onClose, onAdd }: Props) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [publisherCustom, setPublisherCustom] = useState(false);
+  const [storeCustom, setStoreCustom] = useState(false);
   const [form, setForm] = useState<Omit<WishlistItem, "id" | "added_at">>({
     title: "",
     title_en: "",
@@ -37,6 +42,11 @@ export default function AddWishModal({ onClose, onAdd }: Props) {
     type: "manga",
     priority: "medium",
     notes: "",
+    publisher: "",
+    price: undefined,
+    volumes_wanted: "",
+    volumes_total: undefined,
+    store: "",
   });
 
   function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
@@ -161,6 +171,111 @@ export default function AddWishModal({ onClose, onAdd }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* สำนักพิมพ์ */}
+          <div>
+            <label style={labelStyle}>สำนักพิมพ์</label>
+            {publisherCustom ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={form.publisher}
+                  onChange={(e) => set("publisher", e.target.value)}
+                  placeholder="พิมพ์ชื่อสำนักพิมพ์"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { setPublisherCustom(false); set("publisher", ""); }}
+                  style={{ padding: "0 10px", borderRadius: 10, border: "1.5px solid #b8d9f5", background: "#f0f8ff", color: "#93c5e8", cursor: "pointer", fontSize: 13 }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <select
+                value={form.publisher}
+                onChange={(e) => {
+                  if (e.target.value === "อื่นๆ") { setPublisherCustom(true); set("publisher", ""); }
+                  else set("publisher", e.target.value);
+                }}
+                style={{ ...inputStyle }}
+              >
+                <option value="">— เลือกสำนักพิมพ์ —</option>
+                {PUBLISHERS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* ซื้อจากที่ไหน */}
+          <div>
+            <label style={labelStyle}>ซื้อจากที่ไหน</label>
+            {storeCustom ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={form.store}
+                  onChange={(e) => set("store", e.target.value)}
+                  placeholder="พิมพ์ชื่อร้าน"
+                  autoFocus
+                />
+                <button
+                  onClick={() => { setStoreCustom(false); set("store", ""); }}
+                  style={{ padding: "0 10px", borderRadius: 10, border: "1.5px solid #b8d9f5", background: "#f0f8ff", color: "#93c5e8", cursor: "pointer", fontSize: 13 }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <select
+                value={form.store}
+                onChange={(e) => {
+                  if (e.target.value === "อื่นๆ") { setStoreCustom(true); set("store", ""); }
+                  else set("store", e.target.value);
+                }}
+                style={{ ...inputStyle }}
+              >
+                <option value="">— เลือกร้าน —</option>
+                {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* ราคา + มีทั้งหมด */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>ราคา (บาท)</label>
+              <input
+                style={inputStyle}
+                type="number"
+                min={0}
+                value={form.price ?? ""}
+                onChange={(e) => set("price", e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="เช่น 85"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>มีทั้งหมด (เล่ม)</label>
+              <input
+                style={inputStyle}
+                type="number"
+                min={1}
+                value={form.volumes_total ?? ""}
+                onChange={(e) => set("volumes_total", e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="เช่น 12"
+              />
+            </div>
+          </div>
+
+          {/* เล่มที่ต้องการ */}
+          <div>
+            <label style={labelStyle}>เล่มที่ต้องการ</label>
+            <input
+              style={inputStyle}
+              value={form.volumes_wanted ?? ""}
+              onChange={(e) => set("volumes_wanted", e.target.value)}
+              placeholder="เช่น 3-5 หรือ 1,3,7"
+            />
           </div>
 
           {/* รูปปก */}
