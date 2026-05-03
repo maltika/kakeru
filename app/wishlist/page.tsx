@@ -92,6 +92,34 @@ export default function WishlistPage() {
     setSelectedItem(null);
   }
 
+  // ── ย้ายจาก Wishlist → My Manga ──
+  async function handleMoveToShelf(wishItem: WishlistItem) {
+    if (!user) return;
+
+    const newBook = {
+      title: wishItem.title,
+      title_en: wishItem.title_en ?? "",
+      type: wishItem.type,
+      publisher: wishItem.publisher ?? "",
+      cover_url: wishItem.cover_url ?? "",
+      series_status: "ongoing" as const,
+      format: "physical" as const,
+      total_volumes: wishItem.volumes_total,
+      owned_volumes: undefined,
+      read_volume: undefined,
+      read_status: "planned" as const,
+      notes: wishItem.notes ?? "",
+    };
+
+    await apiFetch("/api/books", user.uid, {
+      method: "POST",
+      body: JSON.stringify(newBook),
+    });
+
+    // ลบออกจาก wishlist
+    await handleDelete(wishItem.id);
+  }
+
   if (!authReady) return null;
 
   const counts = {
@@ -102,15 +130,23 @@ export default function WishlistPage() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh",overflow: "hidden",alignItems: "flex-start", backgroundColor: "#fff", backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`, backgroundSize: "70px 70px", overflowX: "hidden", width: "100%" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", alignItems: "flex-start", backgroundColor: "#fff", backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`, backgroundSize: "70px 70px", overflowX: "hidden", width: "100%" }}>
       <Sidebar />
 
-      <main style={{ flex: 1, padding: isMobile ? "72px 16px 24px" : "24px 24px 24px", maxWidth: "100%", overflow: "hidden" }}>
-        <div style={{ borderRadius: 16, height: 300, background: "#b8d9f5", overflow: "hidden", position: "relative",flexShrink: 0,  }}>
-                  <Image src="/banner-anime.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
-                </div>
+      <main style={{ flex: 1, padding: isMobile ? "72px 16px 24px" : "24px 24px 24px", maxWidth: "100%", overflowX: "hidden", overflowY: "auto", height: "100%", boxSizing: "border-box" }}>
+        <div style={{
+          borderRadius: 16,
+          height: isMobile ? 180 : 300,
+          background: "#b8d9f5",
+          overflow: "hidden",
+          position: "relative",
+          flexShrink: 0
+        }}>
+          <Image src="/banner-anime.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
+        </div>
+
         {/* Header */}
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 20, marginTop:16 , flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 20, marginTop: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a5fa8" }}>✨ My Wishlist</h1>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "#93c5e8" }}>
@@ -194,6 +230,7 @@ export default function WishlistPage() {
           onClose={() => setSelectedItem(null)}
           onDelete={handleDelete}
           onUpdate={handleUpdate}
+          onMoveToShelf={handleMoveToShelf}
         />
       )}
     </div>

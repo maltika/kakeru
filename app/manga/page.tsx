@@ -137,7 +137,14 @@ export default function Home() {
       <main style={{ flex: 1, padding: 16, paddingTop: isMobile ? 72 : 16, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" ,overflowY: "auto",height:"100%"}}>
         {error && <div style={{ padding: "12px 16px", backgroundColor: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
 
-        <div style={{ borderRadius: 16, height: 300, background: "#b8d9f5", overflow: "hidden", position: "relative",flexShrink: 0,  }}>
+        <div style={{ 
+  borderRadius: 16, 
+  height: isMobile ? 180 : 300,  // ← เปลี่ยนตรงนี้
+  background: "#b8d9f5", 
+  overflow: "hidden", 
+  position: "relative", 
+  flexShrink: 0 
+}}>
           <Image src="/banner-manga.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
         </div>
 

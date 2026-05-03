@@ -93,7 +93,7 @@ export default function WishlistCard({ item, onClick, onToggleBought }: Props) {
       )}
 
       {/* Priority badge */}
-      {!item.bought && (
+      {/* {!item.bought && (
         <div style={{
           position: "absolute", top: 6, right: 6, zIndex: 3,
           background: p.bg, backdropFilter: "blur(4px)",
@@ -104,31 +104,34 @@ export default function WishlistCard({ item, onClick, onToggleBought }: Props) {
         }}>
           {p.icon}
         </div>
-      )}
+      )} */}
 
       {/* Checkbox ซื้อแล้ว */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleBought?.(item, !item.bought);
-        }}
-        title={item.bought ? "ยกเลิก" : "ทำเครื่องหมายว่าซื้อแล้ว"}
-        style={{
-          position: "absolute", top: 6, left: 6, zIndex: 4,
-          width: 24, height: 24, borderRadius: 7,
-          border: item.bought ? "2px solid #34d399" : "2px solid rgba(255,255,255,0.8)",
-          background: item.bought ? "#34d399" : "rgba(255,255,255,0.5)",
-          backdropFilter: "blur(4px)",
-          cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 13, lineHeight: 1,
-          transition: "all 0.15s",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-          padding: 0,
-        }}
-      >
-        {item.bought ? "✓" : ""}
-      </button>
+      {/* Checkbox — โชว์เฉพาะตอนซื้อแล้ว */}
+{item.bought && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      onToggleBought?.(item, !item.bought);
+    }}
+    title="ยกเลิก"
+    style={{
+      position: "absolute", top: 6, left: 6, zIndex: 4,
+      width: 24, height: 24, borderRadius: 7,
+      border: "2px solid #34d399",
+      background: "#34d399",
+      backdropFilter: "blur(4px)",
+      cursor: "pointer",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 13, lineHeight: 1,
+      transition: "all 0.15s",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+      padding: 0,
+    }}
+  >
+    ✓
+  </button>
+)}
     </div>
   );
 }
