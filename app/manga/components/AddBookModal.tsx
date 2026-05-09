@@ -6,6 +6,7 @@ import { Book, BookType, SeriesStatus, ReadStatus, Format } from "./BookCard";
 interface Props {
   onClose: () => void;
   onAdd: (book: Omit<Book, "id">) => Promise<void>;
+  publishers?: string[];
 }
 
 // ── Responsive hook ───────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ const inputStyle = {
 };
 const selectStyle = { ...inputStyle, background: "#fff" };
 
-export default function AddBookModal({ onClose, onAdd }: Props) {
+export default function AddBookModal({ onClose, onAdd, publishers = [] }: Props) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const isMobile = useIsMobile(640);
@@ -160,7 +161,18 @@ export default function AddBookModal({ onClose, onAdd }: Props) {
             </div>
             <div>
               <label style={labelStyle}>สำนักพิมพ์</label>
-              <input style={inputStyle} value={form.publisher} onChange={(e) => set("publisher", e.target.value)} placeholder="เช่น Siam Inter" />
+              <input
+                style={inputStyle}
+                value={form.publisher}
+                onChange={(e) => set("publisher", e.target.value)}
+                placeholder="เช่น Siam Inter"
+                list="publisher-list"
+              />
+              <datalist id="publisher-list">
+                {publishers.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
             </div>
           </div>
 

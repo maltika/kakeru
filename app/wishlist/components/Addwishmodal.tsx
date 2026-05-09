@@ -6,6 +6,7 @@ import { WishlistItem, WishlistPriority } from "@/app/wishlist/components/Wishli
 interface Props {
   onClose: () => void;
   onAdd: (item: Omit<WishlistItem, "id" | "added_at">) => Promise<void>;
+  publishers?: string[];
 }
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: "#5b9bd5", marginBottom: 4, display: "block" as const };
@@ -30,7 +31,7 @@ const PRIORITY_OPTIONS: { value: WishlistPriority; label: string; color: string;
 const PUBLISHERS = ["Siam Inter Comics", "NED Comics", "Vibulkij", "Bongkoch", "animag", "Nation Edutainment", "อื่นๆ"];
 const STORES = ["ร้านหนังสือทั่วไป", "Kinokuniya", "B2S", "Se-ed", "Naiin", "Shopee", "Lazada", "อื่นๆ"];
 
-export default function AddWishModal({ onClose, onAdd }: Props) {
+export default function AddWishModal({ onClose, onAdd, publishers = [] }: Props) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publisherCustom, setPublisherCustom] = useState(false);
@@ -176,35 +177,16 @@ export default function AddWishModal({ onClose, onAdd }: Props) {
           {/* สำนักพิมพ์ */}
           <div>
             <label style={labelStyle}>สำนักพิมพ์</label>
-            {publisherCustom ? (
-              <div style={{ display: "flex", gap: 6 }}>
-                <input
-                  style={{ ...inputStyle, flex: 1 }}
-                  value={form.publisher}
-                  onChange={(e) => set("publisher", e.target.value)}
-                  placeholder="พิมพ์ชื่อสำนักพิมพ์"
-                  autoFocus
-                />
-                <button
-                  onClick={() => { setPublisherCustom(false); set("publisher", ""); }}
-                  style={{ padding: "0 10px", borderRadius: 10, border: "1.5px solid #b8d9f5", background: "#f0f8ff", color: "#93c5e8", cursor: "pointer", fontSize: 13 }}
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <select
-                value={form.publisher}
-                onChange={(e) => {
-                  if (e.target.value === "อื่นๆ") { setPublisherCustom(true); set("publisher", ""); }
-                  else set("publisher", e.target.value);
-                }}
-                style={{ ...inputStyle }}
-              >
-                <option value="">— เลือกสำนักพิมพ์ —</option>
-                {PUBLISHERS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            )}
+            <input
+              style={inputStyle}
+              value={form.publisher}
+              onChange={(e) => set("publisher", e.target.value)}
+              placeholder="เช่น Siam Inter Comics"
+              list="wish-publisher-list"
+            />
+            <datalist id="wish-publisher-list">
+              {publishers.map((p) => <option key={p} value={p} />)}
+            </datalist>
           </div>
 
           {/* ซื้อจากที่ไหน */}

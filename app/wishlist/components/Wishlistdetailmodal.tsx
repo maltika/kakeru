@@ -10,6 +10,7 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdate: (item: WishlistItem) => Promise<void>;
   onMoveToShelf?: (item: WishlistItem) => void;
+  publishers?: string[];
 }
 
 // ── Responsive hook ───────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const PUBLISHERS = ["Siam Inter Comics", "NED Comics", "Vibulkij", "Bongkoch", "
 const STORES = ["ร้านหนังสือทั่วไป", "Kinokuniya", "B2S", "Se-ed", "Naiin", "Shopee", "Lazada", "อื่นๆ"];
 
 export default function WishlistDetailModal({
-  item, onClose, onDelete, onUpdate, onMoveToShelf,
+  item, onClose, onDelete, onUpdate, onMoveToShelf, publishers = []
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -248,31 +249,6 @@ export default function WishlistDetailModal({
                 </div>
               </div>
             )}
-
-            {/* Priority edit */}
-            {editing && (
-              <div style={infoBlock}>
-                <label style={labelStyle}>ความสำคัญ</label>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {PRIORITY_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => set("priority", opt.value)}
-                      style={{
-                        flex: "1 1 80px", padding: "7px 4px", borderRadius: 10,
-                        fontSize: 12, fontWeight: 600, cursor: "pointer",
-                        border: `1.5px solid ${form.priority === opt.value ? opt.color : "#b8d9f5"}`,
-                        background: form.priority === opt.value ? opt.bg : "#f8fbff",
-                        color: form.priority === opt.value ? opt.color : "#93c5e8",
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Type edit */}
             {editing && (
               <div style={infoBlock}>
@@ -302,34 +278,16 @@ export default function WishlistDetailModal({
                 {/* สำนักพิมพ์ */}
                 <div style={infoBlock}>
                   <label style={labelStyle}>สำนักพิมพ์</label>
-                  {publisherCustom ? (
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <input
-                        style={{ ...inputStyle, flex: 1 }}
-                        value={form.publisher ?? ""}
-                        onChange={(e) => set("publisher", e.target.value)}
-                        placeholder="พิมพ์ชื่อสำนักพิมพ์"
-                      />
-                      <button
-                        onClick={() => { setPublisherCustom(false); set("publisher", ""); }}
-                        style={{ padding: "0 10px", borderRadius: 9, border: "1.5px solid #d8edf8", background: "#f0f8ff", color: "#93c5e8", cursor: "pointer" }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <select
-                      value={form.publisher ?? ""}
-                      onChange={(e) => {
-                        if (e.target.value === "อื่นๆ") { setPublisherCustom(true); set("publisher", ""); }
-                        else set("publisher", e.target.value);
-                      }}
-                      style={{ ...inputStyle }}
-                    >
-                      <option value="">— เลือกสำนักพิมพ์ —</option>
-                      {PUBLISHERS.map((pub) => <option key={pub} value={pub}>{pub}</option>)}
-                    </select>
-                  )}
+                  <input
+                    style={inputStyle}
+                    value={form.publisher ?? ""}
+                    onChange={(e) => set("publisher", e.target.value)}
+                    placeholder="เช่น Siam Inter Comics"
+                    list="wish-detail-publisher-list"
+                  />
+                  <datalist id="wish-detail-publisher-list">
+                    {publishers.map((p) => <option key={p} value={p} />)}
+                  </datalist>
                 </div>
 
                 {/* ซื้อจากที่ไหน */}

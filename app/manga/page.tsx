@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import Sidebar from "@/app/manga/components/Sidebar";
+import Sidebar from "@/app/Sidebar";
 import ShelfGrid from "@/app/manga/components/ShelfGrid";
 import AddBookModal from "@/app/manga/components/AddBookModal";
 import BookDetailModal from "@/app/manga/components/BookDetailModal";
@@ -127,33 +127,58 @@ export default function Home() {
       );
   }, [books, activeTab, search]);
 
+  // ── เตรียมรายชื่อสำนักพิมพ์สำหรับ datalist ──
+  const publishers = useMemo(() => {
+    return [...new Set(books.map((b) => b.publisher).filter(Boolean) as string[])].sort();
+  }, [books]);
+
   // รอ auth โหลด
   if (!authReady) return null;
   if (!user) return null;
 
   return (
-    <div style={{ display: "flex", height: "100vh",overflow: "hidden",alignItems: "flex-start", backgroundColor: "#fff", backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`, backgroundSize: "70px 70px", overflowX: "hidden", width: "100%" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", alignItems: "flex-start", backgroundColor: "#fff", backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`, backgroundSize: "70px 70px", overflowX: "hidden", width: "100%" }}>
       <Sidebar />
-      <main style={{ flex: 1, padding: 16, paddingTop: isMobile ? 72 : 16, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden" ,overflowY: "auto",height:"100%"}}>
+      <main style={{ flex: 1, padding: 16, paddingTop: isMobile ? 72 : 16, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, maxWidth: "100%", boxSizing: "border-box", overflowX: "hidden", overflowY: "auto", height: "100%" }}>
         {error && <div style={{ padding: "12px 16px", backgroundColor: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
 
-        <div style={{ 
-  borderRadius: 16, 
-  height: isMobile ? 180 : 300,  // ← เปลี่ยนตรงนี้
-  background: "#b8d9f5", 
-  overflow: "hidden", 
-  position: "relative", 
-  flexShrink: 0 
-}}>
+        <div style={{
+          borderRadius: 16,
+          height: isMobile ? 180 : 300,  // ← เปลี่ยนตรงนี้
+          background: "#b8d9f5",
+          overflow: "hidden",
+          position: "relative",
+          flexShrink: 0
+        }}>
           <Image src="/banner-manga.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
         </div>
 
         {/* <MigrationButton /> */}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ flex: "1", gap: 6, background: "#fff", border: "1.5px solid #b8d9f5", borderRadius: 30, padding: "6px 8px", flexWrap: "wrap" }}>
+          <div style={{
+            display: "flex",
+            gap: 4,
+            background: "#fff",
+            border: "1.5px solid #b8d9f5",
+            borderRadius: 30,
+            padding: "5px 6px",
+            overflowX: "auto",
+            scrollbarWidth: "none"
+          }}>
             {TABS.map((tab) => (
-              <button key={tab.value} onClick={() => setActiveTab(tab.value)} style={{ flex: 1, padding: "8px 10px", borderRadius: 20, cursor: "pointer", background: activeTab === tab.value ? "#7ec8f0" : "#fff", color: activeTab === tab.value ? "#fff" : "#5b9bd5", border: "none", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
+              <button key={tab.value} onClick={() => setActiveTab(tab.value)} style={{
+                flexShrink: 0,        // ← ไม่ให้หดตัว
+                padding: "8px 14px",
+                borderRadius: 20,
+                cursor: "pointer",
+                background: activeTab === tab.value ? "#7ec8f0" : "transparent",
+                color: activeTab === tab.value ? "#fff" : "#5b9bd5",
+                border: "none",
+                fontSize: 13,
+                fontWeight: 600,
+                whiteSpace: "nowrap"
+              }}>
                 {tab.label}
               </button>
             ))}
@@ -168,13 +193,17 @@ export default function Home() {
 
         {isLoading && <div style={{ textAlign: "center", padding: 40, color: "#93c5e8", fontSize: 15 }}>กำลังโหลด...</div>}
 
-        {!isLoading && (
-          <ShelfGrid books={books} filtered={filtered} onBookClick={(book) => setSelectedBook(book)} onAddClick={() => setShowAdd(true)} uid={user!.uid} />
-        )}
-      </main>
+        {
+          !isLoading && (
+            <ShelfGrid books={books} filtered={filtered} onBookClick={(book) => setSelectedBook(book)} onAddClick={() => setShowAdd(true)} uid={user!.uid} />
+          )
+        }
+      </main >
 
-      {showAdd && <AddBookModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
-      {selectedBook && <BookDetailModal book={selectedBook} onClose={() => setSelectedBook(null)} onDelete={handleDelete} onUpdate={handleUpdate} />}
-    </div>
+
+      {showAdd && <AddBookModal onClose={() => setShowAdd(false)} onAdd={handleAdd} publishers={publishers} />
+      }
+      {selectedBook && <BookDetailModal book={selectedBook} onClose={() => setSelectedBook(null)} onDelete={handleDelete} onUpdate={handleUpdate} publishers={publishers}/>}
+    </div >
   );
 }

@@ -144,6 +144,12 @@ export interface WishlistItem {
   priority: WishlistPriority;
   notes?: string;
   added_at: string; // ISO date string
+  publisher?: string;
+  store?: string;
+  price?: number;
+  volumes_total?: number;
+  volumes_wanted?: string;
+  bought?: boolean;
 }
 
 function wishlistCol(uid: string) {
@@ -160,6 +166,12 @@ function docToWishlistItem(id: string, data: FirebaseFirestore.DocumentData): Wi
     priority: data.priority ?? "medium",
     notes: data.notes || undefined,
     added_at: data.added_at ?? new Date().toISOString(),
+    publisher: data.publisher || undefined,
+    store: data.store || undefined,
+    price: data.price ?? undefined,
+    volumes_total: data.volumes_total ?? undefined,
+    volumes_wanted: data.volumes_wanted || undefined,
+    bought: data.bought ?? false,
   };
 }
 
@@ -179,4 +191,112 @@ export async function updateWishlistItem(uid: string, item: WishlistItem): Promi
 
 export async function deleteWishlistItem(uid: string, id: string): Promise<void> {
   await wishlistCol(uid).doc(id).delete();
+}
+
+// ── Anime ─────────────────────────────────────────────────────────────────────
+
+export type AnimeStatus = "watching" | "completed" | "planned" | "dropped";
+export type AnimeType = "series" | "movie";
+export interface RewatchSession {
+  start_date?: string;
+  end_date?: string;
+  note?: string;
+}
+
+export interface Anime {
+  id: string;
+  mal_id: number;
+  title: string;
+  title_en?: string;
+  cover_url?: string;
+  type: AnimeType;
+  status: AnimeStatus;
+  genre?: string;
+  year?: number;
+  season?: string;        // "Winter 2024"
+  studio?: string;
+  total_episodes?: number;
+  watched_episodes?: number;
+  watch_source?: string;
+  start_date?: string;
+  end_date?: string;
+  rating?: number;
+  rewatch_count?: number;
+  notes?: string;
+  rewatch_sessions?: RewatchSession[];
+}
+
+function animeCol(uid: string) {
+  return getDb().collection("users").doc(uid).collection("anime");
+}
+
+function docToAnime(id: string, data: FirebaseFirestore.DocumentData): Anime {
+  return {
+    id,
+    mal_id: data.mal_id ?? 0,
+    title: data.title ?? "",
+    title_en: data.title_en || undefined,
+    cover_url: data.cover_url || undefined,
+    type: data.type ?? "series",
+    status: data.status ?? "planned",
+    genre: data.genre || undefined,
+    year: data.year ?? undefined,
+    season: data.season || undefined,
+    studio: data.studio || undefined,
+    total_episodes: data.total_episodes ?? undefined,
+    watched_episodes: data.watched_episodes ?? undefined,
+    watch_source: data.watch_source || undefined,
+    start_date: data.start_date || undefined,
+    end_date: data.end_date || undefined,
+    rating: data.rating ?? undefined,
+    rewatch_count: data.rewatch_count ?? undefined,
+    notes: data.notes || undefined,
+    rewatch_sessions: data.rewatch_sessions ?? undefined,
+  };
+}
+
+function animeToData(anime: Omit<Anime, "id">): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  const keys: (keyof Omit<Anime, "id">)[] = [
+    "mal_id", "title", "title_en", "cover_url", "type", "status",
+    "genre", "year", "season", "studio", "total_episodes",
+    "watched_episodes", "watch_source", "start_date", "end_date",
+    "rating", "rewatch_count", "notes","rewatch_sessions",
+  ];
+  for (const key of keys) {
+    if (anime[key] !== undefined) data[key] = anime[key];
+  }
+  return data;
+}
+
+export async function getAnimeList(uid: string): Promise<Anime[]> {
+  const snap = await animeCol(uid).orderBy("title").get();
+  return snap.docs.map((doc) => docToAnime(doc.id, doc.data()));
+}
+
+export async function addAnime(uid: string, anime: Omit<Anime, "id">): Promise<void> {
+  await animeCol(uid).add(animeToData(anime));
+}
+
+export async function updateAnime(uid: string, anime: Anime): Promise<void> {
+  const { id, ...rest } = anime;
+  await animeCol(uid).doc(id).set(animeToData(rest));
+}
+
+export async function deleteAnime(uid: string, id: string): Promise<void> {
+  await animeCol(uid).doc(id).delete();
+}
+
+function animeFavoritesDoc(uid: string) {
+  return getDb().collection("users").doc(uid).collection("meta").doc("anime-favorites");
+}
+
+export async function getAnimeFavorites(uid: string): Promise<string[]> {
+  const snap = await animeFavoritesDoc(uid).get();
+  if (!snap.exists) return [];
+  return snap.data()?.ids ?? [];
+}
+
+export async function saveAnimeFavorites(uid: string, ids: string[]): Promise<void> {
+  await animeFavoritesDoc(uid).set({ ids });
 }

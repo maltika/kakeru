@@ -9,6 +9,7 @@ interface Props {
   onClose: () => void;
   onDelete: (id: string) => void;
   onUpdate: (book: Book) => Promise<void>;
+  publishers?: string[];
 }
 
 // ── Responsive hook ───────────────────────────────────────────────────────────
@@ -478,7 +479,7 @@ function VolumeDetailsView({ total, details, missing }: {
 }
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
-export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: Props) {
+export default function BookDetailModal({ book, onClose, onDelete, onUpdate, publishers = [] }: Props) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Book>(book);
   const [saving, setSaving] = useState(false);
@@ -559,9 +560,10 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
           <div style={{
             display: "flex", gap: 14, alignItems: "flex-start",
             marginBottom: 16,
+            paddingRight: 36,
           }}>
             <div style={{
-              flex: "0 0 80px", height: 120,
+              flex: "0 0 80px", height: "auto", aspectRatio: "2/3", maxHeight: 140,
               position: "relative", borderRadius: 14, overflow: "hidden",
               background: "#eef6fd",
               boxShadow: "0 4px 12px rgba(124,194,240,0.2)",
@@ -579,16 +581,27 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
               )}
             </div>
             {/* ชื่อข้างรูปบนมือถือ */}
-            <div style={{ flex: 1, paddingTop: 4 }}>
+            <div style={{ flex: 1, paddingTop: 4, minWidth: 0, maxWidth: "calc(100% - 30px)" }}>
               {editing ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <input style={{ ...inputStyle, fontSize: 15, fontWeight: 700 }} value={form.title} onChange={(e) => set("title", e.target.value)} />
                   <input style={inputStyle} value={form.title_en ?? ""} onChange={(e) => set("title_en", e.target.value)} placeholder="ชื่ออังกฤษ/ญี่ปุ่น" />
                 </div>
               ) : (
-                <div>
-                  <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1a5fa8", lineHeight: 1.3 }}>{book.title}</h1>
-                  {book.title_en && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#7ab0d4" }}>{book.title_en}</p>}
+                <div style={{ overflow: "hidden" }}>
+                  <h1 style={{
+                    margin: 0, fontSize: 17, fontWeight: 800, color: "#1a5fa8", lineHeight: 1.3,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}>{book.title}</h1>
+                  {book.title_en && (
+                    <p style={{
+                      margin: "4px 0 0", fontSize: 12, color: "#7ab0d4",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>{book.title_en}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -695,9 +708,18 @@ export default function BookDetailModal({ book, onClose, onDelete, onUpdate }: P
                         <option value="novel">นิยาย/หนังสือ</option>
                       </select>
                     </div>
+                    {/* datalist สำหรับสำนักพิมพ์ที่เคยมีในระบบ เพื่อให้เลือกได้ง่ายขึ้น */}
                     <div>
                       <label style={labelStyle}>สำนักพิมพ์</label>
-                      <input style={inputStyle} value={form.publisher ?? ""} onChange={(e) => set("publisher", e.target.value)} />
+                      <input
+                        style={inputStyle}
+                        value={form.publisher ?? ""}
+                        onChange={(e) => set("publisher", e.target.value)}
+                        list="detail-publisher-list"
+                      />
+                      <datalist id="detail-publisher-list">
+                        {publishers.map((p) => <option key={p} value={p} />)}
+                      </datalist>
                     </div>
                     <div>
                       <label style={labelStyle}>สถานะเรื่อง</label>

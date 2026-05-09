@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { auth } from "@/src/lib/firebaseClient";
 import { onAuthStateChanged, User } from "firebase/auth";
-import Sidebar from "@/app/manga/components/Sidebar";
+import Sidebar from "@/app/Sidebar";
 import WishlistCard, { WishlistItem, WishlistPriority } from "@/app/wishlist/components/Wishlistcard";
 import AddWishModal from "@/app/wishlist/components/Addwishmodal";
 import WishlistDetailModal from "@/app/wishlist/components/Wishlistdetailmodal";
@@ -19,9 +19,9 @@ function apiFetch(url: string, uid: string, options: RequestInit = {}) {
 
 const PRIORITY_TABS: { value: WishlistPriority | "all"; label: string }[] = [
   { value: "all", label: "ทั้งหมด" },
-  { value: "high", label: "🔥 สำคัญมาก" },
-  { value: "medium", label: "⭐ ปานกลาง" },
-  { value: "low", label: "💤 ไม่รีบ" },
+  { value: "high", label: "สำคัญมาก" },
+  { value: "medium", label: "ปานกลาง" },
+  { value: "low", label: "ไม่รีบ" },
 ];
 
 export default function WishlistPage() {
@@ -70,6 +70,10 @@ export default function WishlistPage() {
     }
     return list;
   }, [items, activeTab, search]);
+
+  const publishers = useMemo(() => {
+    return [...new Set(items.map((i) => i.publisher).filter(Boolean) as string[])].sort();
+  }, [items]);
 
   async function handleAdd(item: Omit<WishlistItem, "id" | "added_at">) {
     if (!user) return;
@@ -122,79 +126,63 @@ export default function WishlistPage() {
 
   if (!authReady) return null;
 
-  const counts = {
-    all: items.length,
-    high: items.filter((i) => i.priority === "high").length,
-    medium: items.filter((i) => i.priority === "medium").length,
-    low: items.filter((i) => i.priority === "low").length,
-  };
-
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", alignItems: "flex-start", backgroundColor: "#fff", backgroundImage: `linear-gradient(rgba(184,217,245,0.5) 1px,transparent 2px),linear-gradient(90deg,rgba(184,217,245,0.5) 1px,transparent 2px)`, backgroundSize: "70px 70px", overflowX: "hidden", width: "100%" }}>
       <Sidebar />
 
-      <main style={{ flex: 1, padding: isMobile ? "72px 16px 24px" : "24px 24px 24px", maxWidth: "100%", overflowX: "hidden", overflowY: "auto", height: "100%", boxSizing: "border-box" }}>
-        <div style={{
-          borderRadius: 16,
-          height: isMobile ? 180 : 300,
-          background: "#b8d9f5",
-          overflow: "hidden",
-          position: "relative",
-          flexShrink: 0
-        }}>
-          <Image src="/banner-anime.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
+      <main style={{
+        flex: 1, padding: 16, paddingTop: isMobile ? 72 : 16,
+        display: "flex", flexDirection: "column", gap: 14,
+        minWidth: 0, maxWidth: "100%", boxSizing: "border-box",
+        overflowX: "hidden", overflowY: "auto", height: "100%"
+      }}>
+
+        {/* Banner */}
+        <div style={{ borderRadius: 16, height: isMobile ? 180 : 300, background: "#b8d9f5", overflow: "hidden", position: "relative", flexShrink: 0 }}>
+          <Image src="/banner-wishlist.jpg" alt="Banner" fill priority style={{ objectFit: "cover", objectPosition: "center 65%" }} />
         </div>
 
-        {/* Header */}
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 20, marginTop: 16, flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1a5fa8" }}>✨ My Wishlist</h1>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#93c5e8" }}>
-              {items.length} เรื่องที่อยากได้
-            </p>
+        {/* Filter + Search */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+          {/* Tab pill bar */}
+          <div style={{ display: "flex", gap: 4, background: "#fff", border: "1.5px solid #b8d9f5", borderRadius: 30, padding: "5px 6px", overflowX: "auto", scrollbarWidth: "none" }}>
+            {PRIORITY_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                style={{
+                  flex: 1, flexShrink: 0, padding: "8px 14px", borderRadius: 20, cursor: "pointer",
+                  background: activeTab === tab.value ? "#7ec8f0" : "transparent",
+                  color: activeTab === tab.value ? "#fff" : "#5b9bd5",
+                  border: "none", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{ padding: "10px 20px", borderRadius: 20, background: "#7ec8f0", color: "#fff", border: "none", fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: "0 4px 12px rgba(126,200,240,0.35)" }}
-          >
-            + เพิ่มรายการ
-          </button>
-        </div>
 
-        {/* Search */}
-        <div style={{ marginBottom: 16 }}>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 ค้นหาชื่อเรื่อง..."
-            style={{ width: "100%", padding: "10px 16px", borderRadius: 14, border: "1.5px solid #b8d9f5", fontSize: 14, color: "#1a5fa8", outline: "none", boxSizing: "border-box", background: "#fff" }}
-          />
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          {PRIORITY_TABS.map((tab) => (
+          {/* Search + ปุ่มเพิ่ม */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 ค้นหาชื่อเรื่อง..."
+              style={{ flex: 1, padding: "10px 16px", borderRadius: 20, border: "1.5px solid #b8d9f5", fontSize: 14, color: "#1a5fa8", outline: "none", minWidth: 0 }}
+            />
             <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              style={{
-                padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${activeTab === tab.value ? "#7ec8f0" : "#b8d9f5"}`,
-                background: activeTab === tab.value ? "#7ec8f0" : "#fff",
-                color: activeTab === tab.value ? "#fff" : "#7ab0d4",
-              }}
+              onClick={() => setShowAdd(true)}
+              style={{ padding: "10px 16px", borderRadius: 50, background: "#b8d9f5", color: "#1a5fa8", border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", flexShrink: 0 }}
             >
-              {tab.label}
-              <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.8 }}>
-                ({counts[tab.value as keyof typeof counts] ?? 0})
-              </span>
+              + เพิ่มรายการ
             </button>
-          ))}
+          </div>
         </div>
 
         {/* Grid */}
         {isLoading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#93c5e8" }}>กำลังโหลด...</div>
+          <div style={{ textAlign: "center", padding: 40, color: "#93c5e8", fontSize: 15 }}>กำลังโหลด...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ fontSize: 40, margin: "0 0 12px" }}>✨</p>
@@ -202,28 +190,29 @@ export default function WishlistPage() {
               {search ? "ไม่พบเรื่องที่ค้นหา" : "ยังไม่มีรายการใน Wishlist"}
             </p>
             {!search && (
-              <button
-                onClick={() => setShowAdd(true)}
-                style={{ marginTop: 16, padding: "10px 24px", borderRadius: 20, background: "#7ec8f0", color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }}
-              >
+              <button onClick={() => setShowAdd(true)} style={{ marginTop: 16, padding: "10px 24px", borderRadius: 20, background: "#7ec8f0", color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }}>
                 + เพิ่มเรื่องแรก
               </button>
             )}
           </div>
         ) : (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-            gap: 16,
-          }}>
-            {filtered.map((item) => (
-              <WishlistCard key={item.id} item={item} onClick={setSelectedItem} />
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#5b9bd5" }}>✦ My Wishlist</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#93c5e8", background: "#f8fbff", padding: "2px 10px", borderRadius: 12, border: "1px solid #e8f2fb" }}>
+                {filtered.length} เรื่อง
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(120px, 100%/3), 1fr))", gap: "16px 10px" }}>
+              {filtered.map((item) => (
+                <WishlistCard key={item.id} item={item} onClick={setSelectedItem} />
+              ))}
+            </div>
           </div>
         )}
       </main>
 
-      {showAdd && <AddWishModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
+      {showAdd && <AddWishModal onClose={() => setShowAdd(false)} onAdd={handleAdd} publishers={publishers} />}
       {selectedItem && (
         <WishlistDetailModal
           item={selectedItem}
@@ -231,6 +220,7 @@ export default function WishlistPage() {
           onDelete={handleDelete}
           onUpdate={handleUpdate}
           onMoveToShelf={handleMoveToShelf}
+          publishers={publishers}
         />
       )}
     </div>

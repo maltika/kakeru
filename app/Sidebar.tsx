@@ -10,6 +10,7 @@ import { User as UserIcon, LogOut } from "lucide-react";
 
 const navItems = [
   { label: "My Manga", href: "/" },
+  { label: "My Anime", href: "/anime" },
   { label: "Wishlist", href: "/wishlist" },
 ];
 
